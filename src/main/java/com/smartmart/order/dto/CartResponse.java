@@ -1,0 +1,1 @@
+package com.smartmart.order.dto; import lombok.*; import java.math.*; import java.util.*; @Data @Builder public class CartResponse{private List<Item> items;private BigDecimal total;@Data @Builder public static class Item{private Long productId;private String name;private Integer quantity,available;private BigDecimal unitPrice,subtotal;}}

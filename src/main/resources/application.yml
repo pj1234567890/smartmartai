@@ -1,0 +1,37 @@
+spring:
+  # Loads local settings from the project-root .env file when present.
+  config:
+    import: optional:file:.env[.properties]
+  application:
+    name: smartmart-ai
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/smartmart}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+jwt:
+  # Supplied by the environment or the ignored local .env file. It must be stable
+  # across restarts and at least 32 UTF-8 bytes long for HS256.
+  secret: ${JWT_SECRET}
+  expiration: 86400000 # 24 hours in milliseconds
+
+server:
+  port: 8080
+
+logging:
+  level:
+    com.smartmart: DEBUG
+    org.springframework.security: DEBUG
+
+smartmart:
+  # Explicit opt-in only. It seeds an empty development database and never deletes data.
+  demo-seed: ${SMARTMART_DEMO_SEED:false}

@@ -1,0 +1,2 @@
+package com.smartmart.order.entity; import com.smartmart.product.entity.Product; import jakarta.persistence.*; import lombok.*; import java.math.*;
+@Entity @Table(name="order_items") @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder public class OrderItem{@Id @GeneratedValue(strategy=GenerationType.IDENTITY) private Long id; @ManyToOne(fetch=FetchType.LAZY) private CustomerOrder order; @ManyToOne(fetch=FetchType.LAZY) private Product product; private Integer quantity; private BigDecimal unitPrice; private BigDecimal subtotal;}

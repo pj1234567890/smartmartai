@@ -1,0 +1,1 @@
+package com.smartmart.discount.dto; import jakarta.validation.constraints.*; import lombok.*; import java.math.*; @Data public class DiscountRequest{@NotNull @DecimalMin("0") @DecimalMax("100") private BigDecimal percentage;}

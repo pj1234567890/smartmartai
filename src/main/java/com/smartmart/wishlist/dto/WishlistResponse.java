@@ -1,0 +1,1 @@
+package com.smartmart.wishlist.dto; import lombok.*; import java.math.*; import java.time.*; @Data @Builder public class WishlistResponse {private Long id,productId; private String name,brand,category,aisle,shelf,availabilityStatus; private BigDecimal price,discountPercentage; private Integer availableQuantity; private LocalDateTime createdAt;}
