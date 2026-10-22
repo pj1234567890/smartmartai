@@ -13,6 +13,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.transaction.annotation.Transactional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -33,6 +34,7 @@ class ReceivingSecurityTest {
     @Autowired JwtUtil jwtUtil;
     @Autowired UserRepository users;
     @Autowired PasswordEncoder passwordEncoder;
+    @Autowired com.smartmart.inventory.repository.InventoryRepository inventories;
 
     private String shopperToken;
     private String managerToken;
@@ -60,6 +62,8 @@ class ReceivingSecurityTest {
                 get("/api/receiving"),
                 post("/api/receiving").contentType("application/json").content("{\"supplierName\":\"S\",\"invoiceNumber\":\"I\"}"),
                 post("/api/receiving/1/confirm").contentType("application/json"),
+                post("/api/receiving/1/lines/1/create-product").contentType("application/json")
+                        .content("{\"name\":\"Blocked\",\"brand\":\"Blocked\",\"category\":\"Blocked\",\"price\":1}"),
                 post("/api/receiving/1/cartons/scan").contentType("application/json").content("{\"code\":\"CTN-1\"}"),
                 multipart("/api/receiving/1/invoice").file(new org.springframework.mock.web.MockMultipartFile(
                         "file", "invoice.pdf", "application/pdf", new byte[]{1, 2, 3}))
@@ -79,6 +83,38 @@ class ReceivingSecurityTest {
         // A manager header passes authentication; the endpoint exists (200 with empty list page).
         mvc.perform(get("/api/receiving").header("Authorization", "Bearer " + managerToken))
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    @Transactional
+    void managerCanCreateAndAttachCatalogueProductToInvoiceLineWithoutAddingStock() throws Exception {
+        var mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+        var receiptResponse = mvc.perform(post("/api/receiving")
+                        .header("Authorization", "Bearer " + managerToken)
+                        .contentType("application/json")
+                        .content("{\"supplierName\":\"Review supplier\"}"))
+                .andExpect(status().isCreated()).andReturn();
+        long receiptId = mapper.readTree(receiptResponse.getResponse().getContentAsString()).get("id").asLong();
+
+        var lineResponse = mvc.perform(post("/api/receiving/" + receiptId + "/lines")
+                        .header("Authorization", "Bearer " + managerToken)
+                        .contentType("application/json")
+                        .content("{\"description\":\"New invoice product\",\"invoiceQuantity\":3,\"unitOfMeasure\":\"UNIT\",\"unitCost\":\"2.50\"}"))
+                .andExpect(status().isCreated()).andReturn();
+        long lineId = mapper.readTree(lineResponse.getResponse().getContentAsString()).get("id").asLong();
+
+        var linked = mvc.perform(post("/api/receiving/" + receiptId + "/lines/" + lineId + "/create-product")
+                        .header("Authorization", "Bearer " + managerToken)
+                        .contentType("application/json")
+                        .content("{\"name\":\"New invoice product\",\"brand\":\"Review brand\",\"category\":\"Review category\",\"price\":\"4.25\"}"))
+                .andExpect(status().isCreated())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$.productId").isNumber())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$.productName").value("New invoice product"))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$.matchStatus").value("MANUAL"))
+                .andReturn();
+
+        long productId = mapper.readTree(linked.getResponse().getContentAsString()).get("productId").asLong();
+        assertThat(inventories.findByProductId(productId)).isEmpty();
     }
 
     @Test

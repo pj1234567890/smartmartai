@@ -2,6 +2,8 @@ package com.smartmart.receiving.service;
 
 import com.smartmart.common.exception.BusinessException;
 import com.smartmart.product.entity.Product;
+import com.smartmart.product.dto.ProductRequest;
+import com.smartmart.product.service.ProductService;
 import com.smartmart.product.repository.ProductRepository;
 import com.smartmart.receiving.config.ReceivingProperties;
 import com.smartmart.receiving.dto.ReceiptRequests;
@@ -33,6 +35,7 @@ public class ReceiptService {
     private final ReceiptCartonRepository cartons;
     private final ReceiptDocumentRepository documents;
     private final ProductRepository products;
+    private final ProductService productService;
     private final ProductBatchService batchService;
     private final ReconciliationService reconciliation;
     private final ReceivingProperties properties;
@@ -154,6 +157,28 @@ public class ReceiptService {
         }
         if (request.rejectedQuantity() != null) line.setRejectedQuantity(request.rejectedQuantity());
         if (request.resolutionReason() != null) line.setResolutionReason(trim(request.resolutionReason(), 500));
+        line.setBatch(resolveBatch(line));
+        reconciliation.recompute(receipt);
+    }
+
+    /** Creates a new catalogue product and attaches it to an unmatched invoice line atomically. */
+    @Transactional
+    public void createProductForLine(Long receiptId, Long lineId, ProductRequest request) {
+        GoodsReceipt receipt = require(receiptId);
+        requireEditable(receipt);
+        ReceiptLine line = lines.findById(lineId).orElseThrow(() -> BusinessException.notFound("Receipt line not found"));
+        if (!line.getReceipt().getId().equals(receiptId)) {
+            throw BusinessException.badRequest("The line does not belong to this receipt");
+        }
+        if (line.getProduct() != null) {
+            throw BusinessException.conflict("This invoice line is already linked to a catalogue product");
+        }
+
+        Product product = productService.createEntity(request);
+        line.setProduct(product);
+        line.setMatchStatus(MatchStatus.MANUAL);
+        line.setAutoMatched(false);
+        line.setExpectedUnits(reconciliation.expectedUnits(line));
         line.setBatch(resolveBatch(line));
         reconciliation.recompute(receipt);
     }

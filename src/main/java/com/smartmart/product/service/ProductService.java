@@ -20,6 +20,12 @@ public class ProductService {
 
     @Transactional
     public ProductResponse create(ProductRequest request) {
+        return toResponse(createEntity(request));
+    }
+
+    /** Creates a catalogue entry for a caller that must associate it in the same transaction. */
+    @Transactional
+    public Product createEntity(ProductRequest request) {
         if (productRepository.findByName(request.getName()).isPresent()) {
             throw BusinessException.conflict("Product with name '" + request.getName() + "' already exists");
         }
@@ -34,8 +40,7 @@ public class ProductService {
                 .description(request.getDescription())
                 .build();
 
-        Product saved = productRepository.save(product);
-        return toResponse(saved);
+        return productRepository.save(product);
     }
 
     @Transactional(readOnly = true)

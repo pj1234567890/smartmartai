@@ -48,7 +48,12 @@ export function InvoiceReview({ id, receipt, document, reconciliation, editable,
 
   const saveLine = async (payload) => {
     setBusy(true);
-    try { await api.updateReceiptLine(id, payload.lineId, payload.body); toast('Line updated'); setEditing(null); setAdding(false); reload(); }
+    try {
+      if (payload.createProduct) await api.createProductForReceiptLine(id, payload.lineId, payload.createProduct);
+      else await api.updateReceiptLine(id, payload.lineId, payload.body);
+      toast(payload.createProduct ? 'Catalogue product created and linked to invoice line' : 'Line updated');
+      setEditing(null); setAdding(false); reload();
+    }
     catch (err) { toast(err.message, 'error'); } finally { setBusy(false); }
   };
 
@@ -117,9 +122,19 @@ function LineForm({ products, line, busy, onClose, onSave, toast }) {
     resolutionReason: base.resolutionReason || ''
   });
   const [error, setError] = useState('');
+  const [createNew, setCreateNew] = useState(false);
+  const [newProduct, setNewProduct] = useState({ name: line?.description || '', brand: '', category: '', price: '', aisle: '', shelf: '', description: '' });
   const set = (e) => setForm({ ...form, [e.target.name]: e.target.value });
+  const setNew = (e) => setNewProduct({ ...newProduct, [e.target.name]: e.target.value });
   const save = (e) => {
     e.preventDefault();
+    if (createNew) {
+      if (!newProduct.name.trim() || !newProduct.brand.trim() || !newProduct.category.trim() || !(Number(newProduct.price) > 0)) {
+        setError('Enter a product name, brand, category, and selling price greater than zero'); return;
+      }
+      onSave({ lineId: line.id, createProduct: { ...newProduct, name: newProduct.name.trim(), brand: newProduct.brand.trim(), category: newProduct.category.trim(), price: Number(newProduct.price) } });
+      return;
+    }
     if (line && !line.productId && !form.productId) { setError('Select the matching SmartMart product'); return; }
     onSave({
       lineId: line?.id || 0,
@@ -140,6 +155,20 @@ function LineForm({ products, line, busy, onClose, onSave, toast }) {
   return <Modal title={line ? `Edit line · ${line.description}` : 'Add invoice line manually'} onClose={onClose}>
     <form className="modal-form product-form" onSubmit={save}>
       <label className="wide">Invoice description<input name="description" value={form.description} onChange={set} disabled readOnly title="Descriptions are kept as printed on the invoice" /></label>
+      {line && !line.productId && <div className="wide" style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+        <Button type="button" variant={!createNew ? 'secondary' : 'ghost'} onClick={() => { setCreateNew(false); setError(''); }}>Select existing product</Button>
+        <Button type="button" variant={createNew ? 'secondary' : 'ghost'} onClick={() => { setCreateNew(true); setError(''); }}>Create new catalogue product</Button>
+      </div>}
+      {createNew ? <>
+        <p className="muted wide">This creates a catalogue entry and links it to this invoice line. It does not add stock; inventory changes only when the receipt is confirmed. Enter the selling price, which may differ from the invoice unit cost.</p>
+        <label>Product name<input name="name" value={newProduct.name} onChange={setNew} required maxLength="255" /></label>
+        <label>Brand<input name="brand" value={newProduct.brand} onChange={setNew} required maxLength="100" /></label>
+        <label>Category<input name="category" value={newProduct.category} onChange={setNew} required maxLength="100" /></label>
+        <label>Selling price<input name="price" type="number" min="0.01" step="0.01" value={newProduct.price} onChange={setNew} required /></label>
+        <label>Aisle<input name="aisle" value={newProduct.aisle} onChange={setNew} maxLength="50" /></label>
+        <label>Shelf<input name="shelf" value={newProduct.shelf} onChange={setNew} maxLength="50" /></label>
+        <label className="wide">Description<textarea name="description" value={newProduct.description} onChange={setNew} rows="2" maxLength="1000" /></label>
+      </> : <>
       <label>SmartMart product<select name="productId" value={form.productId} onChange={set}>
         <option value="">{products ? 'Select a product…' : 'Loading products…'}</option>
         {(products?.content || []).map((p) => <option key={p.id} value={p.id}>{p.name} · {p.brand}</option>)}
@@ -155,10 +184,11 @@ function LineForm({ products, line, busy, onClose, onSave, toast }) {
       <label>Accepted quantity (stock)<input type="number" min="0" name="acceptedQuantity" value={form.acceptedQuantity} onChange={set} /></label>
       <label>Rejected / damaged units<input type="number" min="0" name="rejectedQuantity" value={form.rejectedQuantity} onChange={set} /></label>
       <label className="wide">Resolution reason <small>(required when accepting at variance)</small><input name="resolutionReason" value={form.resolutionReason} onChange={set} maxLength={500} /></label>
+      </>}
       {error && <p className="muted wide" role="alert" style={{ color: '#c0392b' }}>{error}</p>}
       <div className="modal-actions wide">
         <Button variant="ghost" type="button" onClick={onClose}>Cancel</Button>
-        <Button loading={busy}>Save line</Button>
+        <Button loading={busy}>{createNew ? 'Create product and link line' : 'Save line'}</Button>
       </div>
     </form>
   </Modal>;

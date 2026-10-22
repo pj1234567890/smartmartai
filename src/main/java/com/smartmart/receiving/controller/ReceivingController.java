@@ -12,6 +12,7 @@ import com.smartmart.receiving.service.InvoiceExtractionService;
 import com.smartmart.receiving.service.ProductBatchService;
 import com.smartmart.receiving.service.ReceiptService;
 import com.smartmart.receiving.service.StockConfirmationService;
+import com.smartmart.product.dto.ProductRequest;
 import com.smartmart.security.CurrentUserService;
 import com.smartmart.user.entity.User;
 import jakarta.validation.Valid;
@@ -106,6 +107,13 @@ public class ReceivingController {
             @PathVariable Long id, @PathVariable Long lineId, @Valid @RequestBody ReceiptRequests.UpdateLine request) {
         receipts.updateLine(id, lineId, request, user());
         return ResponseEntity.ok(receipts.mapLine(id, lineId));
+    }
+
+    @PostMapping("/{id}/lines/{lineId}/create-product")
+    public ResponseEntity<ReceiptResponses.ReceiptLine> createProductForLine(
+            @PathVariable Long id, @PathVariable Long lineId, @Valid @RequestBody ProductRequest request) {
+        receipts.createProductForLine(id, lineId, request);
+        return ResponseEntity.status(201).body(receipts.mapLine(id, lineId));
     }
 
     @GetMapping("/{id}/discrepancies")
