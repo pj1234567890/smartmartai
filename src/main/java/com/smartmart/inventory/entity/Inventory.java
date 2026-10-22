@@ -14,4 +14,6 @@ public class Inventory {
  @Column(nullable=false) private Integer reorderLevel;
  private LocalDate expiryDate;
  private java.math.BigDecimal discountPercentage;
+ @Column(length=50) private String aisle;
+ @Column(length=50) private String shelf;
 }

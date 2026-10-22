@@ -23,3 +23,9 @@ Log out and back in to receive a MANAGER JWT. There is no public manager registr
 - The assistants are grounded: backend services assemble only relevant, authenticated shopper data or aggregated manager data before responding. `AiProvider` is a provider boundary for a configured LLM; the default provider is disabled so no data leaves the application and a factual local fallback answers from current SmartMart records. API keys are never hardcoded.
 
 The current implementation uses REST refresh after checkout; WebSocket push is intentionally not enabled yet.
+
+## Goods receiving
+
+Managers can receive a supplier delivery end to end: upload a printed or digital invoice, extract and correct its contents, scan the physical cartons (QR or manual entry), reconcile the invoice against what was scanned, and commit the accepted stock exactly once with an audited stock movement. Uploading, extracting and scanning never change stock; only confirming an eligible receipt does.
+
+The module is manager-only, reuses the existing product, inventory, batch and stock-movement tables, and stores uploaded invoices outside the database. See [RECEIVING.md](RECEIVING.md) for the workflow, endpoints, schema, OCR/Tesseract setup, configuration, tests and demo steps.

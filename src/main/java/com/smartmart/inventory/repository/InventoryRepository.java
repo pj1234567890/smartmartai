@@ -1,7 +1,10 @@
 package com.smartmart.inventory.repository;
-import com.smartmart.inventory.entity.Inventory; import org.springframework.data.jpa.repository.*; import java.time.LocalDate; import java.util.*;
+import com.smartmart.inventory.entity.Inventory; import jakarta.persistence.LockModeType; import org.springframework.data.jpa.repository.*; import java.time.LocalDate; import java.util.*;
 public interface InventoryRepository extends JpaRepository<Inventory,Long> {
  Optional<Inventory> findByProductId(Long productId);
+ @Lock(LockModeType.PESSIMISTIC_WRITE)
+ @Query("select i from Inventory i where i.product.id = :productId")
+ Optional<Inventory> findByProductIdForUpdate(Long productId);
  @Query("select i from Inventory i where i.quantity <= i.reorderLevel") List<Inventory> findLowStock();
  List<Inventory> findByExpiryDateBetween(LocalDate from, LocalDate to);
  List<Inventory> findByExpiryDateBefore(LocalDate date);

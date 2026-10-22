@@ -33,6 +33,21 @@ public class User implements UserDetails {
     @Column(nullable = false)
     private String password;
 
+    @Column(length = 30)
+    private String mobileNumber;
+
+    @Column(length = 500)
+    private String deliveryAddress;
+
+    @Column(length = 120)
+    private String deliveryCity;
+
+    @Column(length = 20)
+    private String deliveryPinCode;
+
+    @Column(length = 500)
+    private String deliveryInstructions;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Role role;

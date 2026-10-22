@@ -1,0 +1,32 @@
+# Test-only configuration. Overrides the main application.yml so the whole context,
+# including the transactional stock-confirmation flow, runs against in-memory H2 in
+# PostgreSQL compatibility mode instead of the developer's local PostgreSQL.
+spring:
+  application:
+    name: smartmart-ai
+  datasource:
+    url: jdbc:h2:mem:smartmart-test;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DATABASE_TO_LOWER=TRUE
+    username: sa
+    password: ""
+    driver-class-name: org.h2.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+
+jwt:
+  # Required by JwtUtil for this profile only; never a production secret.
+  secret: test-only-jwt-secret-for-smartmart-tests-0123456789abcdef
+  expiration: 3600000
+
+smartmart:
+  receiving:
+    # Invoice uploads in tests are written to a throwaway temp directory.
+    upload-dir: ${java.io.tmpdir}/smartmart-test-invoices
+    max-upload-mb: 5
+    ocr:
+      # No Tesseract dependency in the test environment: the engine is disabled and the
+      # graceful-degrade path (manual invoice entry) is what the upload tests exercise.
+      enabled: false
+      data-path: ""
+      language: eng

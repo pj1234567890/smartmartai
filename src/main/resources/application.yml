@@ -9,6 +9,11 @@ spring:
     username: ${DB_USERNAME:postgres}
     password: ${DB_PASSWORD:postgres}
     driver-class-name: org.postgresql.Driver
+  servlet:
+    multipart:
+      # Hard cap at the servlet layer; SmartMart also validates the configured business limit in the receiving module.
+      max-file-size: ${SMARTMART_MAX_UPLOAD_MB:12}MB
+      max-request-size: ${SMARTMART_MAX_UPLOAD_MB:12}MB
   jpa:
     hibernate:
       ddl-auto: update
@@ -33,5 +38,16 @@ logging:
     org.springframework.security: DEBUG
 
 smartmart:
+  delivery:
+    fee: ${SMARTMART_DELIVERY_FEE:50.00}
   # Explicit opt-in only. It seeds an empty development database and never deletes data.
   demo-seed: ${SMARTMART_DEMO_SEED:false}
+  receiving:
+    # Uploaded supplier invoices are stored here (never inside the webapp or database).
+    upload-dir: ${SMARTMART_UPLOAD_DIR:${user.home}/.smartmart/invoices}
+    max-upload-mb: ${SMARTMART_MAX_UPLOAD_MB:10}
+    ocr:
+      # Local Tesseract OCR. Degrades gracefully (manual invoice entry stays available) when not installed.
+      enabled: ${SMARTMART_OCR_ENABLED:true}
+      data-path: ${SMARTMART_TESSDATA:}
+      language: ${SMARTMART_TESS_LANG:eng}
